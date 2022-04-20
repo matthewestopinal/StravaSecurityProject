@@ -1,4 +1,4 @@
-# StravaSecurityProject
+# Strava Data Tools
 
 Contains functions to manipulate, visualize, and analyze GPS Data from a Strava Data Dump.
 
