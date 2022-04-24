@@ -7,3 +7,5 @@ Contains functions to manipulate, visualize, and analyze GPS Data from a Strava 
 Requires plotly, fitparse, numpy, and pandas.
 
 Note: As [MapBox](https://www.mapbox.com/) is required for certain visualizations, a mapbox token will be required for these functions.
+
+Note: A [Google Maps](https://github.com/googlemaps/google-maps-services-python) API token is also required for this project.
