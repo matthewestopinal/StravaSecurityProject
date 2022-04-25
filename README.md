@@ -8,4 +8,4 @@ Requires plotly, fitparse, numpy, and pandas.
 
 Note: As [MapBox](https://www.mapbox.com/) is required for certain visualizations, a mapbox token will be required for these functions.
 
-Note: A [Google Maps](https://github.com/googlemaps/google-maps-services-python) API token is also required for this project.
+Note: A [Google Maps](https://github.com/googlemaps/google-maps-services-python) API token is also required to analyze privacy zones. Strava stores Privacy Zones using text addresses, so we send those to Google Maps to receive coordinates.
