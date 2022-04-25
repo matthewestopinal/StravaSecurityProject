@@ -1,5 +1,6 @@
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import numpy as np
 import fitparse
 import gzip
@@ -8,7 +9,6 @@ import os
 
 from geographiclib.geodesic import Geodesic
 import googlemaps
-import json
 
 
 #Accepts the filename of the activity.csv file
@@ -55,6 +55,7 @@ def unzip_gps_files(gps_locs, dest="fit_files"):
 
 #Gets the start locations from .fit files in a given folder
 #Given a privacy zone will consider first ping outside privacy zone
+#Returns a DataFrame
 def get_start_locations(src, privacy_zones=None):
     count = 0
     start_locations = []
@@ -101,7 +102,13 @@ def get_start_locations(src, privacy_zones=None):
             #print(record_debug)
 
     print(f"{count} files checked.")
-    return start_locations
+
+    #CAST TO DATAFRAME
+    #Format the coordinates into the appropriate Dataframe
+    start_locations = [list(t) for t in start_locations]
+    start_df = pd.DataFrame(start_locations, columns = ['Latitude', 'Longitude'])
+
+    return start_df
 
 #Accepts a path to a google maps API key
 #Returns string Key
@@ -117,11 +124,6 @@ def load_gmaps_key(key_loc = 'google_maps_token.txt'):
 #TODO Actually implement this
 def check_in_privacy_zone(loc, zones):
     for zone in zones:
-        #Get radius in kilometers
-        radius = zone["Radius"]
-        radius = radius.split(" ")
-        radius = float(radius[0])
-
         #GET coords from zone address
         zone_lat = zone['Latitude']
         zone_long = zone['Longitude']
@@ -130,7 +132,7 @@ def check_in_privacy_zone(loc, zones):
         geod = Geodesic.WGS84
         g = geod.Inverse(loc[0], loc[1], zone_lat, zone_long)
         g_dist = g['s12']
-        if  g_dist < radius * 1000:
+        if  g_dist < zone['Radius'] * 1000:
             return True
 
     return False
@@ -152,23 +154,78 @@ def get_privacy_coords(zones):
         zone_maps = zone_maps[0]
         zone_geometry = zone_maps['geometry']
         zone_loc = zone_geometry['location']
-        my_zone["Radius"] = zone["Radius"]
+
+        #Actually get the radius value as a flaot
+        radius = zone["Radius"]
+        radius = radius.split(" ")
+        radius = float(radius[0])
+        my_zone["Radius"] = radius
+
         my_zone["Latitude"] = zone_loc['lat']
         my_zone['Longitude'] = zone_loc['lng']
+
+        
         privacy_zones.append(my_zone)
 
     return privacy_zones
 
 
 #Takes a list of coords and draws them on mapbox using the associated token
-def draw_map(coords, token_path="mapbox_token.txt"):
-    coords = [list(t) for t in coords]
-    df = pd.DataFrame(coords, columns = ['latitude', 'longitude'])
+#TODO INCLUDE PRIVACY ZONES
+#TODO TAKE COORDS AS DF
+def draw_map(start_df, privacy_zones=[], token_path="mapbox_token.txt", layer =""):
+    '''
+    #UNWRAP AND REWRAP DataFrames
+    visualize_list = start_df.to_dict('records')
+    pt_size = 15
+    for pt in visualize_list:
+        pt['size'] = pt_size
+        pt['type'] = 'start'
+        pt['opacity'] = 1
+    
+    for zone in privacy_zones:
+        tmp_dict = {}
+        tmp_dict['Latitude'] = zone['Latitude']
+        tmp_dict['Longitude'] = zone['Longitude']
+        tmp_dict['type'] = 'privacy'
+
+        tmp_dict['size'] = radius * 1000
+        tmp_dict['opacity'] = 0.5
+        visualize_list.append(tmp_dict)
+    
+    start_df = pd.DataFrame(visualize_list)
+    '''
     px.set_mapbox_access_token(open(token_path).read())
-    fig = px.scatter_mapbox(data_frame=df, lat='latitude', lon='longitude', size_max=15, zoom=7)
+    fig = px.scatter_mapbox(
+        data_frame=start_df,
+        lat='Latitude',
+        lon='Longitude',
+        zoom=7)
+
+    '''
+    #Format privacy zones properly
+    pz = privacy_zones
+
+    #convert our radii to meters
+    for zone in pz:
+        zone["Radius"] = zone["Radius"] * 1000
+
+    if len(pz) > 0:
+        pz = pd.DataFrame(pz)
+        fig.add_trace(go.Scatter(x=pz['Latitude'], y=pz['Latitude'], opacity=0.5))
+    '''
+    #Want this so that we do not need a token
+    if layer != "":
+        fig.update_layout(mapbox_style='open-street-map')
+
     fig.update_layout(title= 'Map of Start Locations')
     fig.show()
 
+#Accepts Dataframe
+#Saves a csv file
+def save_points(points, path='output_points.csv'):
+    points.to_csv(path_or_buf=path)
+    return
 
 #This will be a class to manage the activity file
 #Will handle importing data from a folder
@@ -190,9 +247,12 @@ class Activity_Manager:
 
         return activities
 
+'''
     
 privacy_zone = pd.read_csv('caleb_privacy_zones.csv')
 privacy_coords = get_privacy_coords(privacy_zone)
 
-starts = get_start_locations('fit_files', privacy_zones=privacy_coords)
-draw_map(starts)
+#starts = get_start_locations('fit_files', privacy_zones=privacy_coords)
+starts = pd.read_csv('output_points.csv')
+draw_map(starts, privacy_zones = privacy_coords)
+'''
