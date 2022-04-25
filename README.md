@@ -8,9 +8,9 @@ Strava contains Privacy Features to help users hide addresses associated with th
 
 One notable feature intended to alleviate this concern is the Privacy Zone. This disables location sharing around a certain radius of a marked location. Unfortunately, given enough data, this feature can be easily defeated.
 
-[Starting Locations (Obscured by Privacy Zone)](example_map.png)
+![Starting Locations (Obscured by Privacy Zone)](example_map.png)
 
-[Deduced Start Location](privacy_zone_beaten.png)
+![Deduced Start Location](privacy_zone_beaten.png)
 
 Requires plotly, fitparse, numpy, and pandas.
 
