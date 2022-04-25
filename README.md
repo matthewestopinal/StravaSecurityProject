@@ -4,6 +4,14 @@ Data tools created to investigate how much information is gleanable from Strava.
 
 Contains functions to manipulate, visualize, and analyze GPS Data from a Strava Data Dump.
 
+Strava contains Privacy Features to help users hide addresses associated with them (such as home or office addresses), while still being able to participate in sharing routes and interesting activities. While disabling maps on activities prevents any chance of leaked location information, it undermines much of the purpose of fitness applications like Strava, the ability to compete on shared segments, share routes with friends, and post accomplishments.
+
+One notable feature intended to alleviate this concern is the Privacy Zone. This disables location sharing around a certain radius of a marked location. Unfortunately, given enough data, this feature can be easily defeated.
+
+[Starting Locations (Obscured by Privacy Zone)](example_map.png)
+
+[Deduced Start Location](privacy_zone_beaten.png)
+
 Requires plotly, fitparse, numpy, and pandas.
 
 To extract the compressed activity files, use ```python 3 ./strava_extract.py -e``` NOTE that due that some functions involved still use relative paths, so running this from within the working directory containing the data provided by Strava is REQUIRED (I know that's bad, on the TODO list for fixes.)
