@@ -6,6 +6,12 @@ Contains functions to manipulate, visualize, and analyze GPS Data from a Strava 
 
 Requires plotly, fitparse, numpy, and pandas.
 
+To extract the compressed activity files, use ```python 3 ./strava_extract.py -e``` NOTE that due that some functions involved still use relative paths, so running this from within the working directory containing the data provided by Strava is REQUIRED (I know that's bad, on the TODO list for fixes.)
+
+To extract only the start points from a folder of activity files, use ```python3 ./strava_extract.py``` without the ```-e``` flag. This will not extract .FIT files, only read from them. The optional ```-p``` parameters allows you to load in a .CSV file containing privacy zones, but this requires a google maps token, the file location of which is accessed with the ```-g``` flag.
+
+To display the processed points on an interactive map use ```./strava_map.py -i <input_file.csv>```, which is a CSV file containing coordinates to starting points of activities (optionally considering privacy zones). You can configure certain maps to overlay onto. The default map requires a MapBox token. If no such token is available, use ``-l open-street-map``` as your layer.
+
 Note: As [MapBox](https://www.mapbox.com/) is required for certain visualizations, a mapbox token will be required for these functions.
 
 Note: A [Google Maps](https://github.com/googlemaps/google-maps-services-python) API token is also required to analyze privacy zones. Strava stores Privacy Zones using text addresses, so we send those to Google Maps to receive coordinates.
