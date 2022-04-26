@@ -9,7 +9,7 @@ Strava contains Privacy Features to help users hide addresses associated with th
 One notable feature intended to alleviate this concern is the Privacy Zone. This disables location sharing around a certain radius of a marked location. Unfortunately, given enough data, this feature can be easily defeated.
 
 #Example of Mapped Start Locations
-![Starting Locations](my_start_locations.png)
+![Starting Locations](my_start_locations.PNG)
 
 #Example of Start Locations with a Privacy Zone
 
