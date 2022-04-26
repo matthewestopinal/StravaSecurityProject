@@ -18,7 +18,7 @@ To extract the compressed activity files, use ```python 3 ./strava_extract.py -e
 
 To extract only the start points from a folder of activity files, use ```python3 ./strava_extract.py``` without the ```-e``` flag. This will not extract .FIT files, only read from them. The optional ```-p``` parameters allows you to load in a .CSV file containing privacy zones, but this requires a google maps token, the file location of which is accessed with the ```-g``` flag.
 
-To display the processed points on an interactive map use ```./strava_map.py -i <input_file.csv>```, which is a CSV file containing coordinates to starting points of activities (optionally considering privacy zones). You can configure certain maps to overlay onto. The default map requires a MapBox token. If no such token is available, use ``-l open-street-map``` as your layer.
+To display the processed points on an interactive map use ```./strava_map.py -i <input_file.csv>```, which is a CSV file containing coordinates to starting points of activities (optionally considering privacy zones). You can configure certain maps to overlay onto. The default map requires a MapBox token. If no such token is available, use ```-l open-street-map``` as your layer.
 
 Note: As [MapBox](https://www.mapbox.com/) is required for certain visualizations, a mapbox token will be required for these functions.
 
