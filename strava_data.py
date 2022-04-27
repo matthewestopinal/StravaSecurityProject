@@ -7,6 +7,7 @@ import gzip
 import shutil
 import os
 
+import matplotlib.pyplot as plt
 from geographiclib.geodesic import Geodesic
 import googlemaps
 
@@ -71,11 +72,17 @@ def get_start_locations(src, privacy_zones=None):
 
         start_found = False
 
-        record_debug = []
+        run_data = {}
+
+        in_privacy_zone = False
         for record in fitfile.get_messages("record"):
+            #Have we encountered a privacy zone?
+
             #Initialize our location as None
             latitude = None
             longitude = None
+            distance = 10
+            distance_unit ="NA"
             
             record_debug = []
             #Check all the values in the record
@@ -85,15 +92,30 @@ def get_start_locations(src, privacy_zones=None):
                     latitude = data.value
                 if data.name == "position_long":
                     longitude = data.value
+                if data.name == "distance":
+                    distance = data.value
+                    distance_unit = data.units
 
             #If our Latitude and Longitude have been found, try the point
             if latitude != None and longitude != None:
                 #Must convert to degrees from FIT
                 cur_loc = (float(latitude) / 11930465.0, float(longitude) / 11930465.0)
                 if not check_in_privacy_zone(cur_loc, privacy_zones):
-                    start_locations.append(cur_loc)
+                    run_data["Latitude"] = cur_loc[0]
+                    run_data["Longitude"] = cur_loc[1]
+                    run_data["Distance"] = float(distance)
+                    run_data["Privacy"] = in_privacy_zone
+                    start_locations.append(run_data)
+                    #Print out our distance into the run the first point is
+                    #If we started in a privacy zone
+                    if in_privacy_zone:
+                        pass
+                        #print(f"Distance {distance}")
+                        #print(f"Units: {distance_unit}")
                     start_found = True
                     break
+                else:
+                    in_privacy_zone = True
             
         #Note activities with HR data will have fit files without location
         if not start_found:
@@ -105,8 +127,9 @@ def get_start_locations(src, privacy_zones=None):
 
     #CAST TO DATAFRAME
     #Format the coordinates into the appropriate Dataframe
-    start_locations = [list(t) for t in start_locations]
-    start_df = pd.DataFrame(start_locations, columns = ['Latitude', 'Longitude'])
+    start_df= pd.DataFrame(start_locations)
+    #start_locations = [list(t) for t in start_locations]
+    #start_df = pd.DataFrame(start_locations, columns = ['Latitude', 'Longitude'])
 
     return start_df
 
@@ -170,50 +193,69 @@ def get_privacy_coords(zones):
     return privacy_zones
 
 
-#Takes a list of coords and draws them on mapbox using the associated token
-#TODO INCLUDE PRIVACY ZONES
-#TODO TAKE COORDS AS DF
-def draw_map(start_df, privacy_zones=[], token_path="mapbox_token.txt", layer =""):
-    '''
-    #UNWRAP AND REWRAP DataFrames
-    visualize_list = start_df.to_dict('records')
-    pt_size = 15
-    for pt in visualize_list:
-        pt['size'] = pt_size
-        pt['type'] = 'start'
-        pt['opacity'] = 1
-    
-    for zone in privacy_zones:
-        tmp_dict = {}
-        tmp_dict['Latitude'] = zone['Latitude']
-        tmp_dict['Longitude'] = zone['Longitude']
-        tmp_dict['type'] = 'privacy'
+#Accepts start points and optionally privacy and cluster dataframes
+#Outputs dataframe to be mapped
+def merge_dataframes(starts, privacy=pd.DataFrame(), clusters=pd.DataFrame()):
+    start_list = starts.to_dict(orient='records')
+    privacy_list = []
+    cluster_list = []
+    result = []
 
-        tmp_dict['size'] = radius * 1000
-        tmp_dict['opacity'] = 0.5
-        visualize_list.append(tmp_dict)
-    
-    start_df = pd.DataFrame(visualize_list)
-    '''
+    if not privacy.empty:
+        privacy_list = privacy.to_dict(orient='records')
+    if not clusters.empty:
+        cluster_list = clusters.to_dict(orient='records')
+
+    #Add tags to our starts then add to list
+    for start in start_list:
+        #Apply Proper Type
+        if start['Privacy']:
+            start['Type'] = 'Private Start'
+            start['Size'] = float(start['Distance']) / 111
+            if start['Size'] > 1600 / 111:
+                start['Size'] = 1600 / 111
+        else:
+            start['Type'] = 'Public Start'
+            start['Size'] = 100
+        start['Text'] = ''
+        result.append(start)
+
+    #add tags to privacy zones and add to list
+    for zone in privacy_list:
+        zone['Type'] = 'Privacy_Zone'
+        zone['Text'] = f"Radius: {zone['Radius']}km"
+        zone['Size'] = 100
+        result.append(zone)
+
+    #Add our clusters to list
+    for cluster in cluster_list:
+        cluster['Text'] = ''
+        cluster['Size'] = 100
+        result.append(cluster)
+
+    result = pd.DataFrame(result)
+    return result
+
+#Takes a list of coords and draws them on mapbox using the associated token
+#Takes Starts, Privacy Zones, Clusters, as DataFrames with Latitude, Longitude, Type, and Text Columns
+#Privacy Zones must also have a radius Column
+#TODO TAKE COORDS AS DF
+def draw_map(start_df, privacy_zones=None, clusters=None, token_path="mapbox_token.txt", layer =""):
+    map_df = merge_dataframes(start_df, privacy_zones, clusters)
+
     px.set_mapbox_access_token(open(token_path).read())
     fig = px.scatter_mapbox(
-        data_frame=start_df,
+        data_frame=map_df,
         lat='Latitude',
         lon='Longitude',
+        text='Text',
+        color='Type',
+        #size='Size',
+        #size_max=1600/111,
+        size='Size',
+        size_max=20,
         zoom=7)
 
-    '''
-    #Format privacy zones properly
-    pz = privacy_zones
-
-    #convert our radii to meters
-    for zone in pz:
-        zone["Radius"] = zone["Radius"] * 1000
-
-    if len(pz) > 0:
-        pz = pd.DataFrame(pz)
-        fig.add_trace(go.Scatter(x=pz['Latitude'], y=pz['Latitude'], opacity=0.5))
-    '''
     #Want this so that we do not need a token
     if layer != "":
         fig.update_layout(mapbox_style='open-street-map')
@@ -248,7 +290,6 @@ class Activity_Manager:
         return activities
 
 '''
-    
 privacy_zone = pd.read_csv('caleb_privacy_zones.csv')
 privacy_coords = get_privacy_coords(privacy_zone)
 
