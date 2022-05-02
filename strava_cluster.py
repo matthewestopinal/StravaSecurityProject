@@ -1,7 +1,9 @@
+from distutils.command.install_egg_info import safe_name
 import pandas as pd
 import numpy as np
 from sklearn.cluster import DBSCAN
 import argparse
+import math
 import circle_fit as cf
 
 def parseCmdLineArgs():
@@ -38,6 +40,7 @@ def dbscan_clustering(df, epsilon=0.8, min_samples=20, circle=False):
     lat = []
     long = []
     type_list = []
+    print(clusters)
     for cluster in clusters:
         #Get the 'Midpoint' of a cluster
         min_vals = cluster.min(axis=0)
@@ -58,11 +61,69 @@ def dbscan_clustering(df, epsilon=0.8, min_samples=20, circle=False):
     out['Type'] = type_list
 
     circle_info = []
+
+    #Contain 0s for circles unused, 1s if they have
+    #Used to combine overlapping circles like a big-brain
+    circles_used = []
     if circle:
         for cluster in clusters:
             circle_info.append(cf.least_squares_circle(cluster))
-    
-        for c in circle_info:
+            circles_used.append(0)
+
+        #Want to combine circles within a certain range
+        trimmed_circles = []
+        #loop through first circle to compare
+        for index, circle_1 in enumerate(circle_info):
+            close_circles = []
+            max_dist = 0
+
+            if circles_used[index] == 1:
+                continue
+            else:
+                circles_used[index] = 1
+                close_circles.append(circle_1)
+
+                #Loop through neighbors that have not already been checked
+                for index2 in range(index+1, len(circle_info)):
+                    if circles_used[index2] == 1:
+                        continue
+                    circle_2 = circle_info[index2]
+
+                    #Check if circles are mutually visible
+                    P = [circle_1[0], circle_1[1]]
+                    Pr = circle_1[2]
+                    Q = [circle_2[0], circle_2[1]]
+                    Qr = circle_2[3]
+
+                    circle_dist = math.dist(P, Q)
+                    if circle_dist <= Pr and circle_dist <= Qr:
+                        #keep track of the maximum distance
+                        if circle_dist > max_dist:
+                            max_dist = circle_dist
+                        print('Close circles found!')
+                    close_circles.append(circle_2)
+                    
+                    #Mark Circle 2 as used
+                    circles_used[index2] = 1
+
+            #Now we need to combine the circles
+            #Take average of the locations
+            #Take radius as max radius + max distance between center points
+            circle_count = len(close_circles)
+            sumX = 0
+            sumY = 0
+            maxR = 0
+            for circle in close_circles:
+                sumX = sumX + circle[0]
+                sumY = sumY + circle[1]
+                if circle[3] > maxR:
+                    maxR = circle[3]
+            
+            new_circle = [sumX / circle_count, sumY / circle_count, maxR + max_dist]
+            trimmed_circles.append(new_circle)
+            #[X,Y, R, variance]
+
+        for c in trimmed_circles:
             circle_dict = {}
             circle_dict['Longitude'] = c[1]
             circle_dict['Latitude'] = c[0]
@@ -73,7 +134,7 @@ def dbscan_clustering(df, epsilon=0.8, min_samples=20, circle=False):
 def main():
     args = parseCmdLineArgs()
     starts = pd.read_csv(args.input)
-    print(starts)
+    #print(starts)
     if args.privacy:
         tmp_list = []
         starts = starts.to_dict(orient='records')
@@ -83,7 +144,7 @@ def main():
 
         starts = pd.DataFrame(tmp_list)
 
-    print(starts.shape)
+    #print(starts.shape)
     clusters = dbscan_clustering(starts, min_samples=args.samples, epsilon=args.epsilon, circle=args.circle)
     clusters.to_csv(path_or_buf=args.output)
 
