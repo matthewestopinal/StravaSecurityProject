@@ -22,6 +22,9 @@ In order to run this code against your own Strava data, [request your archive](h
 
 ![Deduced Start Location](privacy_zone_beaten.png)
 
+# Determining Start Locations Inside Offset Privacy Zone
+![Starting Locations in Offset Zone](Heat Map.PNG)
+
 Requires plotly, fitparse, numpy, and pandas.
 
 To extract the compressed activity files, use ```python 3 ./strava_extract.py -e``` NOTE that due that some functions involved still use relative paths, so running this from within the working directory containing the data provided by Strava is REQUIRED (I know that's bad, on the TODO list for fixes.)
