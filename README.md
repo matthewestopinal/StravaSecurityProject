@@ -23,7 +23,7 @@ In order to run this code against your own Strava data, [request your archive](h
 ![Deduced Start Location](privacy_zone_beaten.png)
 
 # Determining Start Locations Inside Offset Privacy Zone
-![Starting Locations in Offset Zone](Heat Map.png)
+![Starting Locations in Offset Zone]("Heat Map.png")
 
 Requires plotly, fitparse, numpy, and pandas.
 
